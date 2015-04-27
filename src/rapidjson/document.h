@@ -55,9 +55,6 @@ RAPIDJSON_DIAG_OFF(effc++)
 
     \hideinitializer
 */
-#endif // !defined(RAPIDJSON_HAS_STDSTRING)
-
-#if RAPIDJSON_HAS_STDSTRING
 #include <string>
 #endif // RAPIDJSON_HAS_STDSTRING
 
@@ -460,15 +457,11 @@ public:
     */
     explicit GenericValue(Type type) RAPIDJSON_NOEXCEPT : data_(), flags_() {
         static const unsigned defaultFlags[7] = {
-            kNullFlag, kFalseFlag, kTrueFlag, kObjectFlag, kArrayFlag, kShortStringFlag,
+            kNullFlag, kFalseFlag, kTrueFlag, kObjectFlag, kArrayFlag, kConstStringFlag,
             kNumberAnyFlag
         };
         RAPIDJSON_ASSERT(type <= kNumberType);
         flags_ = defaultFlags[type];
-
-        // Use ShortString to store empty string.
-        if (type == kStringType)
-            data_.ss.SetLength(0);
     }
 
     //! Explicit copy constructor (with allocator)
@@ -957,44 +950,6 @@ public:
         return *this;
     }
 
-    //! Add a constant string value as member (name-value pair) to the object.
-    /*! \param name A string value as name of member.
-        \param value constant string reference as value of member.
-        \param allocator    Allocator for reallocating memory. It must be the same one as used before. Commonly use GenericDocument::GetAllocator().
-        \return The value itself for fluent API.
-        \pre  IsObject()
-        \note This overload is needed to avoid clashes with the generic primitive type AddMember(GenericValue&,T,Allocator&) overload below.
-        \note Amortized Constant time complexity.
-    */
-    GenericValue& AddMember(GenericValue& name, StringRefType value, Allocator& allocator) {
-        GenericValue v(value);
-        return AddMember(name, v, allocator);
-    }
-
-    //! Add any primitive value as member (name-value pair) to the object.
-    /*! \tparam T Either \ref Type, \c int, \c unsigned, \c int64_t, \c uint64_t
-        \param name A string value as name of member.
-        \param value Value of primitive type \c T as value of member
-        \param allocator Allocator for reallocating memory. Commonly use GenericDocument::GetAllocator().
-        \return The value itself for fluent API.
-        \pre  IsObject()
-
-        \note The source type \c T explicitly disallows all pointer types,
-            especially (\c const) \ref Ch*.  This helps avoiding implicitly
-            referencing character strings with insufficient lifetime, use
-            \ref AddMember(StringRefType, GenericValue&, Allocator&) or \ref
-            AddMember(StringRefType, StringRefType, Allocator&).
-            All other pointer types would implicitly convert to \c bool,
-            use an explicit cast instead, if needed.
-        \note Amortized Constant time complexity.
-    */
-    template <typename T>
-    RAPIDJSON_DISABLEIF_RETURN((internal::OrExpr<internal::IsPointer<T>, internal::IsGenericValue<T> >), (GenericValue&))
-    AddMember(GenericValue& name, T value, Allocator& allocator) {
-        GenericValue v(value);
-        return AddMember(name, v, allocator);
-    }
-
 #if RAPIDJSON_HAS_CXX11_RVALUE_REFS
     GenericValue& AddMember(GenericValue&& name, GenericValue&& value, Allocator& allocator) {
         return AddMember(name, value, allocator);
@@ -1062,7 +1017,8 @@ public:
     RAPIDJSON_DISABLEIF_RETURN((internal::OrExpr<internal::IsPointer<T>, internal::IsGenericValue<T> >), (GenericValue&))
     AddMember(StringRefType name, T value, Allocator& allocator) {
         GenericValue n(name);
-        return AddMember(n, value, allocator);
+        GenericValue v(value);
+        return AddMember(n, v, allocator);
     }
 
     //! Remove all members in the object.
@@ -1443,7 +1399,6 @@ public:
             if (!handler.StartObject())
                 return false;
             for (ConstMemberIterator m = MemberBegin(); m != MemberEnd(); ++m) {
-                RAPIDJSON_ASSERT(m->name.IsString()); // User may change the type of name by MemberIterator.
                 if (!handler.Key(m->name.GetString(), m->name.GetStringLength(), (m->name.flags_ & kCopyFlag) != 0))
                     return false;
                 if (!m->value.Accept(handler))

@@ -277,7 +277,7 @@ inline const char *SkipWhitespace_SIMD(const char* p) {
 
     // The rest of string using SIMD
 	static const char whitespace[16] = " \n\r\t";
-	const __m128i w = _mm_load_si128((const __m128i *)&whitespace[0]);
+	const __m128i w = _mm_loadu_si128((const __m128i *)&whitespace[0]);
 
     for (;; p += 16) {
         const __m128i s = _mm_load_si128((const __m128i *)p);
@@ -382,7 +382,7 @@ public:
     typedef typename SourceEncoding::Ch Ch; //!< SourceEncoding character type
 
     //! Constructor.
-    /*! \param stackAllocator Optional allocator for allocating stack memory. (Only use for non-destructive parsing)
+    /*! \param allocator Optional allocator for allocating stack memory. (Only use for non-destructive parsing)
         \param stackCapacity stack capacity in bytes for storing a single decoded string.  (Only use for non-destructive parsing)
     */
     GenericReader(StackAllocator* stackAllocator = 0, size_t stackCapacity = kDefaultStackCapacity) : stack_(stackAllocator, stackCapacity), parseResult_() {}
@@ -512,7 +512,8 @@ private:
                 case '}': 
                     if (!handler.EndObject(memberCount))
                         RAPIDJSON_PARSE_ERROR(kParseErrorTermination, is.Tell());
-                    return;
+                    else
+                        return;
                 default:  RAPIDJSON_PARSE_ERROR(kParseErrorObjectMissCommaOrCurlyBracket, is.Tell());
             }
         }
@@ -548,7 +549,8 @@ private:
                 case ']': 
                     if (!handler.EndArray(elementCount))
                         RAPIDJSON_PARSE_ERROR(kParseErrorTermination, is.Tell());
-                    return;
+                    else
+                        return;
                 default:  RAPIDJSON_PARSE_ERROR(kParseErrorArrayMissCommaOrSquareBracket, is.Tell());
             }
         }
@@ -728,12 +730,12 @@ private:
     }
 
     template<typename InputStream, bool backup>
-    class NumberStream;
+    class NumberStream {};
 
     template<typename InputStream>
     class NumberStream<InputStream, false> {
     public:
-        NumberStream(GenericReader& reader, InputStream& s) : is(s) { (void)reader;  }
+        NumberStream(GenericReader& reader, InputStream& is) : is(is) { (void)reader;  }
         ~NumberStream() {}
 
         RAPIDJSON_FORCEINLINE Ch Peek() const { return is.Peek(); }
