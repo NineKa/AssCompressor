@@ -1,0 +1,28 @@
+<assCompressorForceFuncs>
+	<lib>
+		<path>
+			<![CDATA[assConverterLib.dylib]]>
+		</path>
+		<bundle>
+			<![CDATA[AssCompressor AssConverter Library @K9]]>
+		</bundle>
+		<func type="ConverterForceRaw">autoFixFXString</func>
+
+		<func type="ConverterForce">removeTopRoll</func>
+		<func type="ConverterForce">removeBottomRoll</func>
+		<func type="ConverterForce">removeBottomFix</func>
+		<func type="ConverterForce">removeTopFix</func>
+		<func type="ConverterForce">removeReverseTopRoll</func>
+		<func type="ConverterForce">removeFX</func>
+		<func type="ConverterForce">removeUnknown</func>
+		<func type="ConverterForce">removeVisitorComment</func>
+
+		<func type="ConverterFXStr">colorComment</func>
+		<func type="ConverterFXStr">fontSizeSpecify</func>
+		<func type="ConverterFXStr">fade</func>
+		<func type="ConverterFXStr">rotation</func>
+		<func type="ConverterFXStr">borderSpecify</func>
+		<func type="ConverterFXStr">fxFontNameNormal</func>
+		<func type="ConverterFXStr">fxFontNameMac</func>
+	</lib>
+</assCompressorForceFuncs>
