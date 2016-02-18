@@ -16,7 +16,7 @@
 #else
     #include <boost/regex.h>
 #endif
-
+namespace assConverterLib{
     namespace implementation{
         void removeVisitorCommentFunc(bilibiliCommentContainer*& _container,
                                       assUtil::assConfigure&,
@@ -136,6 +136,10 @@
             if (_c->getType() == bilibiliCommentType::FXComment) {
                 double ratio = _configure.fadeConfigArray[7];
                 if (_c->fxInfo.fadeIn == _c->fxInfo.fadeOut){
+					if (_c->fxInfo.fadeIn == 0.0){
+						free(buffer);
+						return std::string("");
+					}
                     sprintf(buffer, "\\alpha&H%02x",
                             255 - (int)(_c->fxInfo.fadeIn * ratio * 255));
                     std::string returnStr(buffer);
@@ -154,6 +158,10 @@
                 free(buffer);
                 return returnStr;
             }else{
+				if (fadeCalFunc(_c, _configure) == 0.0) {
+					free(buffer);
+					return std::string("");
+				}
                 sprintf(buffer, "\\alpha&H%02x", fadeCalFunc(_c, _configure));
                 std::string returnStr(buffer);
                 free(buffer);
@@ -317,4 +325,5 @@
     assConverterFXStrType borderSpecify(implementation::borderStr, nullptr, "borderSpecify");
     assConverterFXStrType fxFontNameNormal(implementation::fxFontNameStrNormal, nullptr, "fxFontNameNormal");
     assConverterFXStrType fxFontNameMac(implementation::fxFontNameStrMac, nullptr, "fxFontNameMac");
+}
 #endif

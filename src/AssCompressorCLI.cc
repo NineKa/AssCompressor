@@ -3,6 +3,7 @@
 #include "colorize.h"
 #include "rapidxml/rapidxml.hpp"
 #include "rapidxml/rapidxml_utils.hpp"
+#include "assConverterLib.h"
 #include "assUtil.h"
 #include "netFetcher.h"
 #include <iostream>
@@ -35,7 +36,6 @@ enum forceFuncType{
     converterFXStr,
 };
 
-std::vector<std::pair<void*,std::string>> dlHanle;
 std::vector<assConverterForceType> force_list;
 std::vector<assConverterForceRawType> force_raw_list;
 std::vector<assConverterFXStrType> fxStr_list;
@@ -60,100 +60,38 @@ forceFuncType deduceType(const char* _str){
         throw runtime_error(AssCompressorCLI_BADLOADXML);
     }
 }
-void unload(){
-    for (std::vector<std::pair<void*,std::string>>::iterator iter =
-         dlHanle.begin(); iter != dlHanle.end(); iter++) dlclose(iter->first);
-}
-void loadAdditionForceFunc(const char* _loadPath){
-    if (!boost::filesystem::exists(_loadPath)) throw runtime_error(AssCompressorCLI_LIBNOTEXIST);
-    rapidxml::file<> xmlFile(_loadPath);
-    rapidxml::xml_document<> xmlParser;
-    xmlParser.parse<0>(xmlFile.data());
-    rapidxml::xml_node<>* rootNode = xmlParser.first_node();
-    for (rapidxml::xml_node<>* libIter = rootNode->first_node("lib");
-         libIter != nullptr;
-         libIter = libIter -> next_sibling()) {
-        if (libIter == nullptr) break;
-        
-        if (strcmp(libIter->name(), "lib") !=0 ) continue;
-        const char* libPath = libIter->first_node("path")->first_node()->value();
-        const char* bundleInfo = libIter->first_node("bundle")->first_node()->value();
-        std::string infoStr(bundleInfo);
-        
-        void* libHandle = dlopen(libPath, RTLD_LAZY);
-        if (libHandle == nullptr) {
-            throw runtime_error(AssCompressorCLI_BADBUNDLE);
-        }
-        dlHanle.push_back(std::pair<void*, std::string>(libHandle, infoStr));
-        
-        for (rapidxml::xml_node<>* funcIter = libIter->first_node("func");
-             funcIter != nullptr;
-             funcIter = funcIter->next_sibling()) {
-            if (strcmp(funcIter->name(), "func") != 0) continue;
-            
-            forceFuncType funcType = deduceType(funcIter->
-                                                first_attribute("type")->
-                                                value());
-            const char* funcName = funcIter->first_node()->value();
-            dlerror();
-            void* structPtr = dlsym(libHandle, funcName);
-            if (structPtr == nullptr) {
-                throw runtime_error(AssCompressorCLI_BADBUNDLE);
-            } else {
-                switch (funcType) {
-                    case converterForce:{
-                        force_list.push_back((*((assConverterForceType*)structPtr)));
-                        break;
-                    }
-                    case converterForceRaw:{
-                        force_raw_list.push_back(*((assConverterForceRawType*)structPtr));
-                        break;
-                    }
-                    case converterFXStr:{
-                        fxStr_list.push_back(*((assConverterFXStrType*)structPtr));
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    xmlParser.clear();
+
+void loadAdditionForceFunc(){
+    force_raw_list.push_back(assConverterLib::autoFixFXString);
+	force_list.push_back(assConverterLib::removeTopRoll);
+	force_list.push_back(assConverterLib::removeBottomRoll);
+	force_list.push_back(assConverterLib::removeBottomFix);
+	force_list.push_back(assConverterLib::removeTopFix);
+	force_list.push_back(assConverterLib::removeReverseTopRoll);
+	force_list.push_back(assConverterLib::removeFX);
+	force_list.push_back(assConverterLib::removeCode);
+	force_list.push_back(assConverterLib::removeUnknown);
+	fxStr_list.push_back(assConverterLib::colorComment);
+	fxStr_list.push_back(assConverterLib::fontSizeSpecify);
+	fxStr_list.push_back(assConverterLib::fade);
+	fxStr_list.push_back(assConverterLib::rotation);
+	fxStr_list.push_back(assConverterLib::borderSpecify);
+	fxStr_list.push_back(assConverterLib::fxFontNameNormal);
+	fxStr_list.push_back(assConverterLib::fxFontNameMac);
+	return;
 }
 void usage(){
     std::cout<<ASSCOMPRESSOR_Signature<<" @K9"<<std::endl;
     std::cout<<"AssCompressor converts bilibili XML Comment file into standard ass subtitle file."<<std::endl;
-    std::cout<<colorize(std::string("\tAssCompressorCLI [-v] [-l _path] [-i _path] [-o _path] [-stdin]"), ColorIO_Style::Highlight)<<std::endl;
+    std::cout<<colorize(std::string("\tAssCompressorCLI [-v] [-i _path] [-o _path] [-stdin]"), ColorIO_Style::Highlight)<<std::endl;
     std::cout<<colorize(std::string("-v"), ColorIO_Style::Highlight)<<'\t'<<"Display the version of AssCompressor"<<std::endl;
-    std::cout<<colorize(std::string("-l"), ColorIO_Style::Highlight)<<'\t'<<"Load the library configure XML from _path"<<std::endl;
     std::cout<<colorize(std::string("-i"), ColorIO_Style::Highlight)<<'\t'<<"Load the target configure XML from _path"<<std::endl;
     std::cout<<colorize(std::string("-stdin"), ColorIO_Style::Highlight)<<'\t'<<"Receive target configure from stdin"<<std::endl;
     std::cout<<colorize(std::string("-o"), ColorIO_Style::Highlight)<<'\t'<<"Sepcify target output, default is STDOUT"<<std::endl;
 }
 void version(){
     usage();
-    std::cout<<"Bundle Info:"<<std::endl;
-    typedef std::vector<std::pair<void*,std::string>>::iterator dlIter;
-    for (dlIter iter = dlHanle.begin(); iter != dlHanle.end(); iter++) {
-        std::cout<<colorize(std::string("[Bundle]"),ColorIO_Color::Red,ColorIO_Style::Highlight)<<iter->second<<std::endl;
-        std::cout<<colorize(std::string("ForceType    :"),ColorIO_Color::Cyan,ColorIO_Style::Highlight);
-        for (std::vector<assConverterForceType>::iterator i =force_list.begin();
-             i != force_list.end(); i++) {
-            std::cout<< i -> what<< " ";
-        }
-        std::cout<<std::endl;
-        std::cout<<colorize(std::string("ForceRawType :"),ColorIO_Color::Cyan,ColorIO_Style::Highlight);
-        for (std::vector<assConverterForceRawType>::iterator i =force_raw_list.begin();
-             i != force_raw_list.end(); i++) {
-            std::cout<< i -> what<< " ";
-        }
-        std::cout<<std::endl;
-        std::cout<<colorize(std::string("ForceType    :"),ColorIO_Color::Cyan,ColorIO_Style::Highlight);
-        for (std::vector<assConverterFXStrType>::iterator i =fxStr_list.begin();
-             i != fxStr_list.end(); i++) {
-            std::cout<< i -> what<< " ";
-        }
-        std::cout<<std::endl;
-    }
+	return;
 }
 assConverterForceType retriveForceType(std::string _name){
     typedef std::vector<assConverterForceType>::iterator iterType;
@@ -205,6 +143,7 @@ time_t getCorrectRollDate(const size_t _cid, time_t _target){
     }
     return returnT;
 }
+
 inline bool parseBoolString(const char* _cstr){
     // True: true ; TRUE; T; Y; Yes
     // False: flase; FALSE; F; N; No
@@ -231,16 +170,9 @@ int main(int argc, char** args){
         bool stdinScan = true;
         bool stdOutput = true;
         std::string configureXMl;
-        std::string libXML = "library.xml";
         std::string outputPath;
         for (vector<std::string>::iterator iter = argsTokens.begin(); iter!=argsTokens.end(); iter++) {
             if (strcmp(iter->c_str(), "-v") == 0) {versionMode = true; continue;}
-            if (strcmp(iter->c_str(), "-l") == 0) {
-                if ((++iter) == argsTokens.end()) {badArgs = true; break;}
-                libXML = *iter;
-                if (!boost::filesystem::exists(libXML.c_str())) {badArgs = true; break;}
-                continue;
-            }
             if (strcmp(iter->c_str(), "-i") == 0) {
                 if ((++iter) == argsTokens.end()) {badArgs = true; break;}
                 configureXMl = *iter;
@@ -258,7 +190,7 @@ int main(int argc, char** args){
             }
             if (strcmp(iter->c_str(), "-stdin") == 0) {stdinScan = true; continue;}
         }
-        if (versionMode) {loadAdditionForceFunc(libXML.c_str()); version(); unload(); return 0;}
+        if (versionMode) {version(); return 0;}
         if (badArgs) {usage(); return 1;}
         char* buffer = (char*)malloc(sizeof(char)*AssCompressorCLI_MAX_BUFFER);
         memset(buffer, 0, sizeof(char)*AssCompressorCLI_MAX_BUFFER);
@@ -446,7 +378,7 @@ int main(int argc, char** args){
             }
         }
     
-        loadAdditionForceFunc(libXML.c_str());
+        loadAdditionForceFunc();
         assConverter converter(configure);
         if (forceTypeNode != nullptr) {
             const char* jsonStr = forceTypeNode->first_node()->value();
@@ -497,7 +429,6 @@ int main(int argc, char** args){
         
         if (stdinScan) free(buffer);
         if (configure.fadeConfigArray != assUtil::defaultFadeScale) free(configure.fadeConfigArray);
-        unload();
         return 0;
     } catch (runtime_error& _err) {
         std::cerr<<colorize("[Error] ", ColorIO_Color::Red, ColorIO_Style::Highlight)<<_err.what()<<std::endl;
