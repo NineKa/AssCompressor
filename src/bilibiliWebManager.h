@@ -13,10 +13,7 @@
 #include <limits>
 #include <utility>
 #include <assert.h>
-
-#ifdef DEBUG
 #include <sstream>
-#endif
 
 #ifdef CXX11REGEX
     #include <regex>
@@ -108,11 +105,9 @@ public:
         return bilibiliWebManager::bilibiliURL(_aid, 1L);
     }
     
-    #ifdef DEBUG
     static std::string getAvaliableString(rollBackList);
     static std::string getKeywordsString(keywordsList);
     static std::string getVideoSectionListString(videoSectionList);
-    #endif
 };
 
 std::string bilibiliWebManager::regexMatchFirst(std::string& _data,
@@ -313,7 +308,6 @@ void bilibiliWebManager::fetchRollBackDate(){
     }
 }
 
-#ifdef DEBUG
 std::string bilibiliWebManager::getAvaliableString(bilibiliWebManager::rollBackList _list){
     std::stringstream oStrem;
     for (std::vector<std::pair<time_t, size_t>>::iterator iter = _list.begin();
@@ -373,6 +367,5 @@ std::string bilibiliWebManager::getVideoSectionListString(bilibiliWebManager::vi
     oStream>>returnStr;
     return std::string("[") + returnStr.substr(1, returnStr.length()-1) + std::string("]");
 }
-#endif
 
 #endif

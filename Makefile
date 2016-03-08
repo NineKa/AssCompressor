@@ -15,5 +15,8 @@ OBJ = AssCompressorCLI
 $(OBJ) : $(CXX)
 	$(CC) $(lib_path) $(include_path) $(lib) $(CXX) -o $(OBJ)
 
+bilinfo : ./src/bilibiliURLFetcher.cc
+	$(CC) $(lib_path) $(include_path) ./src/bilibiliURLFetcher.cc -o bilinfo $(lib)
+
 clean:
 	rm $(OBJ) 

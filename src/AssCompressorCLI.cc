@@ -82,7 +82,7 @@ void loadAdditionForceFunc(){
 }
 void usage(){
     std::cout<<ASSCOMPRESSOR_Signature<<" @K9"<<std::endl;
-    std::cout<<"AssCompressor converts bilibili XML Comment file into standard ass subtitle file."<<std::endl;
+    std::cout<<"AssCompressor converts bilibili XML Comment file into standard ASS subtitle file."<<std::endl;
     std::cout<<colorize(std::string("\tAssCompressorCLI [-v] [-i _path] [-o _path] [-stdin]"), ColorIO_Style::Highlight)<<std::endl;
     std::cout<<colorize(std::string("-v"), ColorIO_Style::Highlight)<<'\t'<<"Display the version of AssCompressor"<<std::endl;
     std::cout<<colorize(std::string("-i"), ColorIO_Style::Highlight)<<'\t'<<"Load the target configure XML from _path"<<std::endl;
